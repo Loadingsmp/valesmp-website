@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# ValeSMP Store
 
-TODO: Document your project here
+Official ValeSMP Minecraft Server Store - Buy ranks, crate keys, and spawners!
