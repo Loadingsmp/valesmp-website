@@ -14,10 +14,14 @@ console.log("STORE_BRIDGE_SECRET loaded:", process.env.STORE_BRIDGE_SECRET ? "YE
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  process.env.CLIENT_URL,
-].filter(Boolean);
+const allowedOrigins = Array.from(
+  new Set([
+    "http://localhost:5173",
+    "https://valesmp.shop",
+    "https://www.valesmp.shop",
+    process.env.CLIENT_URL,
+  ].filter(Boolean))
+);
 
 app.use(
   cors({
