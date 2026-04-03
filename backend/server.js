@@ -51,32 +51,54 @@ async function fulfillOrder(username, cart) {
     throw new Error("Missing STORE_BRIDGE_URL or STORE_BRIDGE_SECRET in environment.");
   }
 
-  const response = await fetch(`${storeBridgeUrl}/store/claim`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-store-secret": storeBridgeSecret,
-    },
-    body: JSON.stringify({
-      username,
-      cart,
-    }),
-  });
-
-  const text = await response.text();
-  let data = {};
+  const targetUrl = `${storeBridgeUrl}/store/claim`;
+  console.log("StoreBridge target URL:", targetUrl);
 
   try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { raw: text };
-  }
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-store-secret": storeBridgeSecret,
+      },
+      body: JSON.stringify({
+        username,
+        cart,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(data?.error || data?.message || "StoreBridge request failed.");
-  }
+    const text = await response.text();
+    let data = {};
 
-  return data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { raw: text };
+    }
+
+    console.log("StoreBridge response status:", response.status);
+    console.log("StoreBridge response body:", data);
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+          data?.message ||
+          `StoreBridge request failed with status ${response.status}`
+      );
+    }
+
+    return data;
+  } catch (error) {
+    console.error("StoreBridge fetch crashed:", {
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error && "cause" in error ? error.cause : undefined,
+      targetUrl,
+    });
+
+    throw new Error(
+      error instanceof Error ? error.message : "Unknown StoreBridge fetch error"
+    );
+  }
 }
 
 async function getAccessToken() {
@@ -122,41 +144,23 @@ app.get("/health", (_, res) => {
 
 app.get("/api/test-store-bridge", async (_, res) => {
   try {
-    const response = await fetch(`${process.env.STORE_BRIDGE_URL}/store/claim`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-store-secret": process.env.STORE_BRIDGE_SECRET,
+    const result = await fulfillOrder("TestUser123", [
+      {
+        item: {
+          name: "Vale+",
+          category: "rank",
+        },
+        quantity: 1,
       },
-      body: JSON.stringify({
-        username: "TestUser123",
-        cart: [
-          {
-            item: {
-              name: "Vale+",
-              category: "rank",
-            },
-            quantity: 1,
-          },
-        ],
-      }),
-    });
+    ]);
 
-    const text = await response.text();
-    let data = {};
-
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch {
-      data = { raw: text };
-    }
-
-    return res.status(response.status).json({
-      success: response.ok,
-      data,
+    return res.json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     console.error("StoreBridge test error:", error);
+
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : "StoreBridge test failed",
