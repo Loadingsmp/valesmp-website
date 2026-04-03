@@ -28,6 +28,14 @@ const CheckoutModal = () => {
         throw new Error("Missing VITE_API_URL environment variable.");
       }
 
+      localStorage.setItem(
+        "pendingCheckout",
+        JSON.stringify({
+          username,
+          cart,
+        })
+      );
+
       const res = await fetch(`${API_URL}/api/checkout/paypal`, {
         method: "POST",
         headers: {
